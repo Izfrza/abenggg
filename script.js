@@ -1,4 +1,4 @@
-﻿gsap.registerPlugin(ScrollTrigger);
+gsap.registerPlugin(ScrollTrigger);
 
 const photos = [
   "f8dfd007-9603-409c-8123-ce9c0edfe13a.jpg",
@@ -53,90 +53,41 @@ function build() {
   const v = document.querySelectorAll(".v");
   v.forEach((el, idx) => {
     el.src = videos[idx % videos.length];
+    el.preload = "metadata";
     el.load();
-    el.play().catch(() => {});
+    el.muted = true;
+    el.setAttribute("muted", "");
+    el.setAttribute("playsinline", "");
+    el.setAttribute("webkit-playsinline", "");
+    el.playsInline = true;
   });
 }
 
 function reveals() {
-  gsap.from(".title", {
-    opacity: 0,
-    y: 24,
-    duration: 1,
-    ease: "power2.out"
+  gsap.from(".title", { opacity: 0, y: 24, duration: 1, ease: "power2.out" });
+  gsap.from(".sub", { opacity: 0, y: 16, duration: 1, delay: 0.1, ease: "power2.out" });
+  gsap.set(".item", { clipPath: "inset(0 100% 0 0)", opacity: 0 });
+  gsap.set(".item-inner", { xPercent: 18 });
+  gsap.set(".item img", { xPercent: -18, scale: 1.12 });
+  ScrollTrigger.batch(".item", {
+    start: "top 90%",
+    onEnter: (elements) => {
+      elements.forEach((el) => {
+        const rot = gsap.utils.random(-4, 4);
+        const y = gsap.utils.random(10, 30);
+        gsap.set(el, { rotation: rot, y: y });
+      });
+      gsap.to(elements, { clipPath: "inset(0 0% 0 0)", opacity: 1, y: 0, rotation: 0, duration: 1.1, ease: "back.out(1.4)", stagger: 0.05 });
+      gsap.to(elements.map((el) => el.querySelector(".item-inner")), { xPercent: 0, duration: 1.2, ease: "power3.out", stagger: 0.05 }, "-=0.9");
+      gsap.to(elements.map((el) => el.querySelector("img")), { xPercent: 0, scale: 1, duration: 1.3, ease: "power3.out", stagger: 0.05 }, "-=1.1");
+    }
   });
-  gsap.from(".sub", {
-    opacity: 0,
-    y: 16,
-    duration: 1,
-    delay: 0.1,
-    ease: "power2.out"
-  });
-
-  gsap.utils.toArray(".item").forEach((el) => {
-    const inner = el.querySelector(".item-inner");
-    const img = el.querySelector("img");
-
-    const rot = gsap.utils.random(-3, 3);
-    const y = gsap.utils.random(20, 40);
-
-    gsap.set(el, { clipPath: "inset(0 100% 0 0)", opacity: 0, y: y, rotation: rot });
-    gsap.set(inner, { xPercent: 16 });
-    gsap.set(img, { xPercent: -16, scale: 1.12 });
-
-    const tl = gsap.timeline({
-      scrollTrigger: {
-        trigger: el,
-        start: "top 92%"
-      }
-    });
-
-    tl.to(el, {
-      clipPath: "inset(0 0% 0 0)",
-      opacity: 1,
-      y: 0,
-      rotation: 0,
-      duration: 1,
-      ease: "back.out(1.15)"
-    }).to(
-      [inner, img],
-      {
-        xPercent: 0,
-        scale: 1,
-        duration: 1.25,
-        ease: "power3.out"
-      },
-      "-=0.8"
-    );
-  });
-
   gsap.utils.toArray(".vitem").forEach((el) => {
     const video = el.querySelector("video");
     gsap.set(el, { clipPath: "inset(0 100% 0 0)", opacity: 0, y: 26 });
     gsap.set(video, { xPercent: -16, scale: 1.08 });
-
-    const tl = gsap.timeline({
-      scrollTrigger: {
-        trigger: el,
-        start: "top 93%"
-      }
-    });
-    tl.to(el, {
-      clipPath: "inset(0 0% 0 0)",
-      opacity: 1,
-      y: 0,
-      duration: 0.95,
-      ease: "back.out(1.12)"
-    }).to(
-      video,
-      {
-        xPercent: 0,
-        scale: 1,
-        duration: 1.25,
-        ease: "power3.out"
-      },
-      "-=0.8"
-    );
+    const tl = gsap.timeline({ scrollTrigger: { trigger: el, start: "top 93%", onEnter: () => { try { video.muted = true; video.play().catch(() => {}); } catch (e) {} } } });
+    tl.to(el, { clipPath: "inset(0 0% 0 0)", opacity: 1, y: 0, duration: 0.95, ease: "back.out(1.12)" }).to(video, { xPercent: 0, scale: 1, duration: 1.25, ease: "power3.out" }, "-=0.8");
   });
 }
 
@@ -150,32 +101,35 @@ function playM() {
   audio.loop = true;
   const prom = audio.play();
   if (prom !== undefined) {
-    prom.then(() => {
-      p = true;
-      btn.classList.add("playing");
-    }).catch(() => {});
+    prom.then(() => { p = true; btn.classList.add("playing"); }).catch(() => {});
   }
 }
-btn.addEventListener("click", () => {
-  if (p) {
-    audio.pause();
-    p = false;
-    btn.classList.remove("playing");
-  } else playM();
-});
-["touchstart", "mousedown", "keydown", "pointerdown"].forEach((e) => {
-  window.addEventListener(e, playM, { once: true, passive: true });
-});
+btn.addEventListener("click", () => { if (p) { audio.pause(); p = false; btn.classList.remove("playing"); } else playM(); });
+["touchstart", "mousedown", "keydown", "pointerdown"].forEach((e) => { window.addEventListener(e, playM, { once: true, passive: true }); });
 setTimeout(playM, 400);
+
+function autoplayVideos() {
+  document.querySelectorAll(".v").forEach((v) => {
+    try { v.muted = true; v.setAttribute("muted", ""); v.setAttribute("playsinline", ""); v.setAttribute("webkit-playsinline", ""); v.play().catch(() => {}); } catch (e) {}
+  });
+}
+autoplayVideos();
+["touchstart", "mousedown", "pointerdown", "keydown", "scroll", "mousemove", "click", "touchmove"].forEach((ev) => {
+  window.addEventListener(ev, autoplayVideos, { once: true, passive: true });
+});
+setTimeout(autoplayVideos, 500);
+setTimeout(autoplayVideos, 1000);
+setTimeout(autoplayVideos, 1800);
 
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "visible") {
     audio.play().catch(() => {});
-    document.querySelectorAll(".v").forEach((x) => x.play().catch(() => {}));
+    document.querySelectorAll(".v").forEach((x) => { x.muted = true; x.play().catch(() => {}); });
   }
 });
 window.addEventListener("load", () => {
-  document.querySelectorAll(".v").forEach((x) => x.play().catch(() => {}));
+  document.querySelectorAll(".v").forEach((x) => { x.muted = true; x.play().catch(() => {}); });
+  waInit();
 });
 
 function init() {
@@ -190,6 +144,42 @@ mm.add("(prefers-reduced-motion: reduce)", () => {
   gsap.set(".item, .vitem", { clipPath: "none", opacity: 1 });
   gsap.set(".item-inner, .item img, .vitem video", { xPercent: 0, scale: 1 });
   playM();
+  autoplayVideos();
 });
 
+function waInit() {
+  function sendWA(message) {
+    try {
+      const num = "62895402357182";
+      const url = "https://wa.me/" + num + "?text=" + encodeURIComponent(message);
+      window.open(url, "_blank");
+    } catch (e) {}
+  }
+  const waBtn = document.createElement("button");
+  waBtn.className = "wa-btn";
+  waBtn.textContent = "Kirim pesan ke WA";
+  waBtn.style.position = "fixed";
+  waBtn.style.bottom = "clamp(12px,3vw,18px)";
+  waBtn.style.right = "clamp(12px,3vw,18px)";
+  waBtn.style.zIndex = "20";
+  waBtn.style.padding = "10px 14px";
+  waBtn.style.borderRadius = "999px";
+  waBtn.style.border = "1px solid rgba(41,35,26,0.12)";
+  waBtn.style.background = "radial-gradient(120% 120% at 50% 30%, rgba(255,255,255,0.98), rgba(250,247,242,0.94))";
+  waBtn.style.boxShadow = "0 12px 32px -20px rgba(26,22,16,0.95)";
+  waBtn.style.fontFamily = "Inter,sans-serif";
+  waBtn.style.fontSize = "0.9rem";
+  waBtn.style.cursor = "pointer";
+  waBtn.style.backdropFilter = "blur(8px)";
+  waBtn.style.webkitBackdropFilter = "blur(8px)";
+  waBtn.style.color = "var(--text)";
+  waBtn.addEventListener("click", function() {
+    const msg = prompt("Kirim pesan ke 0895402357182", "hai abell cantikkkk");
+    if (msg && msg.trim()) sendWA(msg.trim());
+  });
+  document.body.appendChild(waBtn);
+}
+;
+;
+waInit();
 
