@@ -1,4 +1,4 @@
-﻿gsap.registerPlugin(ScrollTrigger);
+gsap.registerPlugin(ScrollTrigger);
 
 const photos = [
   "f8dfd007-9603-409c-8123-ce9c0edfe13a.jpg",
